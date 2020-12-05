@@ -31,15 +31,3 @@ namespace EventApp
 
     }
 }
-
-//Name, EventType, StartTime i EndTime.
-
-//Tip eventa je enum koji sadrži sljedeće vrijednosti:
-
-//- Coffee
-
-//- Lecture
-
-//- Concert
-
-//- StudySession

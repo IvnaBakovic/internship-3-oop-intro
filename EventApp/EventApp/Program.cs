@@ -7,6 +7,7 @@ namespace EventApp
     {
         static void Main(string[] args)
         {
+            //podaci koji mi služe da provjerim funkcionalnosti
             var ivnaBakovic = new Person("Ivna", "Bakovic", 762, 21374);
             var markoMajic = new Person("Marko", "Majic", 561, 12323);
             var anaAnic = new Person("Ana", "Anic", 123, 877164);
@@ -43,8 +44,8 @@ namespace EventApp
                 },
             };
 
-            bool isContinueFirst = true;
-            while (isContinueFirst)
+            bool shouldContinueFirst = true;
+            while (shouldContinueFirst)
             {
                 int number = DisplayMenu();
                 switch (number)
@@ -56,21 +57,21 @@ namespace EventApp
                         DateTime inputStartDate = DateTime.Parse(Console.ReadLine());
                         Console.Write("Unesite datum i vrijeme (e.g. dd/MM/yyy HH:mm:ss): ");
                         DateTime inputEndDate = DateTime.Parse(Console.ReadLine());
-                        Console.WriteLine("Upišite tip eventa u brojevnom obliku: (0 - Coffee, 1 - Lecture, 2 - Concert, 3 - StudySession): ");
+                        Console.WriteLine("Upišite tip eventa u brojevnom obliku (0 - Coffee, 1 - Lecture, 2 - Concert, 3 - StudySession): ");
                         string eventTypeNumber = Console.ReadLine();
                         EventType eventType = (EventType)Convert.ToInt32(eventTypeNumber);
 
-                        if(ExistingEvent(allEvents,name))
+                        if(ValidateEventExistence(allEvents,name))
                         {
                             Console.WriteLine("Već postoji event s danim imenom!");
                             break;
                         }
-                        if(!CheckTimeInterference(allEvents,inputStartDate,inputEndDate))
+                        if(!ValidateTimeInterference(allEvents,inputStartDate,inputEndDate))
                         {
                             Console.WriteLine("Ne možemo kreirati event jer postoji vremenska interferencija s prijašnjim eventima!");
                             break;
                         }
-                        if(!CheckTimeOrder(inputStartDate,inputEndDate))
+                        if(!ValidateTimeOrder(inputStartDate,inputEndDate))
                         {
                             Console.WriteLine("Ne možemo kreirati event jer ne može završiti prije nego što je počeo!");
                             break;
@@ -80,45 +81,78 @@ namespace EventApp
                             Console.WriteLine("Ne možemo kreirati event jer nije dobro odabran event type!");
                             break;
                         }
-                        addEvent(allEvents, name, inputStartDate, inputEndDate, eventType);
+                        AddEvent(allEvents, name, inputStartDate, inputEndDate, eventType);
                         Console.WriteLine("Event je dodan!");
                         break;
                     case 2:
                         Console.WriteLine("Upišite ime eventa koji želite izbrisati!");
                         name = Console.ReadLine();
-                        if (!ExistingEvent(allEvents, name))
+                        if (!ValidateEventExistence(allEvents, name))
                         {
                             Console.WriteLine("Ne postoji event s tim imenom!");
                             break;
                         }
-                        removeEvent(allEvents, name);
+                        RemoveEvent(allEvents, name);
                         Console.WriteLine("Event je izbrisan");
                         break;
                     case 3:
                         Console.WriteLine("Upišite ime eventa koji želite editirati!");
                         name = Console.ReadLine();
-                        if (!ExistingEvent(allEvents, name))
+                        if (!ValidateEventExistence(allEvents, name))
                         {
                             Console.WriteLine("Ne postoji event s tim imenom!");
                             break;
                         }
                         string tempAnswer;
                         Event targetEvent = FindingEventByName(allEvents, name);
+                        DateTime primaryEventStartDate = targetEvent.StartTime;
+                        DateTime primaryEventEndDate = targetEvent.EndTime;
                         if (AskingQuestions("Želite li promijeniti ime eventa?"))
                         {
                             tempAnswer = Editing("Upišite drugi naziv za vaš event.");
-                            targetEvent.Name = tempAnswer;
+                            if (ValidateEventExistence(allEvents, tempAnswer))
+                            {
+                                Console.WriteLine("Već postoji event s danim imenom pa Vam ne možemo dopustiti promjenu!");
+                            }
+                            else
+                            {
+                                targetEvent.Name = tempAnswer;
+                            }
+                        };
+                        if (AskingQuestions("Želite li promijeniti početak vašeg eventa?"))
+                        {
+                            tempAnswer = Editing("Promijenite početak vašeg eventa (e.g. dd/MM/yyy HH:mm:ss):");
+                            targetEvent.StartTime = DateTime.Parse(tempAnswer);
+                        };
+                        if (AskingQuestions("Želite li promijeniti kraj vašeg eventa?"))
+                        {
+                            tempAnswer = Editing("Promijenite kraj vašeg eventa (e.g. dd/MM/yyy HH:mm:ss):");
+                            targetEvent.EndTime = DateTime.Parse(tempAnswer);
+                            
+                        };
+                        if (!ValidateTimeInterference(allEvents, targetEvent.StartTime, targetEvent.EndTime) ||
+    !ValidateTimeOrder(targetEvent.StartTime, targetEvent.EndTime))
+                        {
+                            targetEvent.StartTime = primaryEventStartDate;
+                            targetEvent.EndTime = primaryEventEndDate;
+                            Console.WriteLine("Ne možemo prihvatiti vaše promjene pri unosu početka i kraja eventa jer su interferenciji" +
+                                " s ostalim događajima ili nepravilan redoslijed vremena!");
+                  
+                        }
+                        if (AskingQuestions("Želite li promijeniti tip vašeg eventa?"))
+                        {
+                            tempAnswer = Editing("Promijenite tip vašeg eventa (0 - Coffee, 1 - Lecture, 2 - Concert, 3 - StudySession):");
+                            targetEvent.EventTip = (EventType)Convert.ToInt32(tempAnswer);
                         };
                         break;
                     case 4:
                         Console.WriteLine("Upišite ime eventa kojem želite dodati osobu!");
                         name = Console.ReadLine();
-                        if (!ExistingEvent(allEvents, name))
+                        if (!ValidateEventExistence(allEvents, name))
                         {
                             Console.WriteLine("Ne postoji event s tim imenom!");
                             break;
                         }
-                        //targetEvent = FindingEventByName(allEvents, name);
                         Console.WriteLine("Upišite ime osobe koju dodajete: ");
                         string firstName = Console.ReadLine();
                         Console.WriteLine("Upišite prezime osobe koju dodajete: ");
@@ -127,29 +161,34 @@ namespace EventApp
                         int OIB = int.Parse(Console.ReadLine());
                         Console.WriteLine("Upišite broj mobitela osobe koju dodajete: ");
                         int phoneNumber = int.Parse(Console.ReadLine());
-                        if(!checkPerson(allEvents,name,OIB))
+                        if(!ValidateGuestOnEvent(allEvents,name,OIB))
                         {
                             Console.WriteLine("Osoba koju ste unijeli je već na popisu.");
                             break;
                         }
-                        addPersonToEvent(allEvents, name, firstName, lastName, OIB, phoneNumber);
+                        AddPersonToEvent(allEvents, name, firstName, lastName, OIB, phoneNumber);
                         break;
                     case 5:
-                        Console.WriteLine("Upišite ime eventa kojem želite dodati osobu!");
+                        Console.WriteLine("Upišite ime eventa s kojeg želite ukloniti osobu!");
                         name = Console.ReadLine();
-                        if (!ExistingEvent(allEvents, name))
+                        if (!ValidateEventExistence(allEvents, name))
                         {
                             Console.WriteLine("Ne postoji event s tim imenom!");
                             break;
                         }
                         Console.WriteLine("Upišite OIB osobe koju želite izbrisati: ");
                         OIB = int.Parse(Console.ReadLine());
-                        removePersonFromEvent(allEvents, name, OIB);
+                        if (ValidateGuestOnEvent(allEvents, name, OIB))
+                        {
+                            Console.WriteLine("Osoba koju ste unijeli nije na popisu pa je i ne možete izbrisati.");
+                            break;
+                        }
+                        RemovePersonFromEvent(allEvents, name, OIB);
                         break;
                     case 6:
                         Console.WriteLine("Ušli ste u novi izbornik:");
-                        bool isContinueSecond = true;
-                        while (isContinueSecond)
+                        bool shouldContinueSecond = true;
+                        while (shouldContinueSecond)
                         {
                             number = DisplaySmallMenu();
                             switch (number)
@@ -157,37 +196,37 @@ namespace EventApp
                                 case 1:
                                     Console.WriteLine("Upišite ime eventa o kojem želite informacije!");
                                     name = Console.ReadLine();
-                                    if (!ExistingEvent(allEvents, name))
+                                    if (!ValidateEventExistence(allEvents, name))
                                     {
                                         Console.WriteLine("Ne postoji event s tim imenom!");
                                         break;
                                     }
-                                    DisplayingEventInfo(allEvents, name);
+                                    DisplayEventInfo(allEvents, name);
                                     break;
                                 case 2:
                                     Console.WriteLine("Upišite ime eventa te ćete dobiti popis gostiju!");
                                     name = Console.ReadLine();
-                                    if (!ExistingEvent(allEvents, name))
+                                    if (!ValidateEventExistence(allEvents, name))
                                     {
                                         Console.WriteLine("Ne postoji event s tim imenom!");
                                         break;
                                     }
-                                    DisplayingEventGuests(allEvents, name);
+                                    DisplayEventGuests(allEvents, name);
                                     break;
                                 case 3:
                                     Console.WriteLine("Upišite ime eventa te ćete dobiti informacije i popis gostiju!");
                                     name = Console.ReadLine();
-                                    if (!ExistingEvent(allEvents, name))
+                                    if (!ValidateEventExistence(allEvents, name))
                                     {
                                         Console.WriteLine("Ne postoji event s tim imenom!");
                                         break;
                                     }
-                                    DisplayingEventInfo(allEvents, name);
-                                    DisplayingEventGuests(allEvents, name);
+                                    DisplayEventInfo(allEvents, name);
+                                    DisplayEventGuests(allEvents, name);
                                     break;
                                 case 4:
                                     Console.WriteLine("Izašli ste iz podmenija!");
-                                    isContinueSecond = false;
+                                    shouldContinueSecond = false;
                                     break;
                                 default:
                                     Console.WriteLine("krivi unos");
@@ -198,7 +237,7 @@ namespace EventApp
                         
                     case 7:
                         Console.WriteLine("Izlaz iz aplikacije");
-                        isContinueFirst = false;
+                        shouldContinueFirst = false;
                         break;
                     default:
                         Console.WriteLine("Neispravan unos broja");
@@ -208,12 +247,12 @@ namespace EventApp
             }
         }
 
-        public static bool checkPerson(Dictionary<Event, List<Person>> dict, string name, int OIB)
+        public static bool ValidateGuestOnEvent(Dictionary<Event, List<Person>> dict, string name, int OIB)
         {
             Event targetEvent = FindingEventByName(dict, name);
             foreach(var item in dict)
             {
-                for(int i = 0; i < item.Value.Count; i++)
+                for(var i = 0; i < item.Value.Count; i++)
                 {
                     if (item.Value[i].OIB == OIB)
                         return false;
@@ -221,13 +260,13 @@ namespace EventApp
             }
             return true;
         }
-        public static void DisplayingEventInfo(Dictionary<Event, List<Person>> dict, string name)
+        public static void DisplayEventInfo(Dictionary<Event, List<Person>> dict, string name)
         {
             Console.WriteLine("name – event type – start time – end time – trajanje – ispis broja ljudi na eventu");
             Event eventTarget = FindingEventByName(dict, name);
             Console.WriteLine(eventTarget.Name + " - " + eventTarget.EventTip + " - " + eventTarget.StartTime + " - " + eventTarget.EndTime + " - " + dict[eventTarget].Count);   
         }
-        public static void DisplayingEventGuests(Dictionary<Event, List<Person>> dict, string name)
+        public static void DisplayEventGuests(Dictionary<Event, List<Person>> dict, string name)
         {
             Event targetEvent = FindingEventByName(dict, name);
             if (dict[targetEvent].Count == 0)
@@ -237,12 +276,12 @@ namespace EventApp
             }
             Console.WriteLine("Gosti na događaju " + name + ":");
             Console.WriteLine("[Redni broj u listi].name – last name – broj mobitela");
-            for (int i = 0; i < dict[targetEvent].Count; i++)
+            for (var i = 0; i < dict[targetEvent].Count; i++)
             {
                 Console.WriteLine(i + "." + dict[targetEvent][i].FirstName + " - " + dict[targetEvent][i].LastName + " - " + dict[targetEvent][i].PhoneNumber);
             }
         }
-        public static bool CheckTimeOrder(DateTime startDate, DateTime endDate)
+        public static bool ValidateTimeOrder(DateTime startDate, DateTime endDate)
         {
             if(startDate<endDate)
             {
@@ -250,7 +289,7 @@ namespace EventApp
             }
             return false;
         }
-        public static bool CheckTimeInterference(Dictionary<Event, List<Person>> dict, DateTime startDate, DateTime endDate)
+        public static bool ValidateTimeInterference(Dictionary<Event, List<Person>> dict, DateTime startDate, DateTime endDate)
         {
             foreach(var item in dict)
             {
@@ -275,7 +314,6 @@ namespace EventApp
             Console.WriteLine("\n\n");
             int x = int.Parse(Console.ReadLine());
             return x;
-
         }
         public static int DisplaySmallMenu()
         {
@@ -324,7 +362,7 @@ namespace EventApp
             string inputAnswer = Console.ReadLine();
             return inputAnswer;
         }
-        public static bool ExistingEvent(Dictionary<Event, List<Person>> dict, string name)
+        public static bool ValidateEventExistence(Dictionary<Event, List<Person>> dict, string name)
         {
             foreach(var item in dict)
             {
@@ -333,15 +371,14 @@ namespace EventApp
             }
             return false;
         }
-        public static void addEvent(Dictionary<Event,List<Person>> dict, string name, DateTime startTime, DateTime endTime, EventType eventTip)
+        public static void AddEvent(Dictionary<Event,List<Person>> dict, string name, DateTime startTime, DateTime endTime, EventType eventTip)
         {
             var newEvent = new Event(name, startTime, endTime, eventTip);
             List<Person> newListEvent = new List<Person>();
             dict.Add(newEvent, newListEvent);
         }
-        public static void removeEvent(Dictionary<Event, List<Person>> dict, string name)
+        public static void RemoveEvent(Dictionary<Event, List<Person>> dict, string name)
         {
-            //var date3 = new DateTime();
             var startDate = new DateTime();
             var endDate = new DateTime();
             Event removedItem = new Event("", startDate, endDate, EventType.Coffee);
@@ -354,38 +391,18 @@ namespace EventApp
             }
             dict.Remove(removedItem);
         }
-
-        public static void addPersonToEvent(Dictionary<Event, List<Person>> dict, string nameEvent, string firstName, string lastName, int OIB, int phoneNumber)
+        public static void AddPersonToEvent(Dictionary<Event, List<Person>> dict, string nameEvent, string firstName, string lastName, int OIB, int phoneNumber)
         {
-            var startDate = new DateTime();
-            var endDate = new DateTime();
             Person addedPerson = new Person(firstName, lastName, OIB, phoneNumber);
-            Event targetEvent = new Event("", startDate, endDate, EventType.Coffee);
-            
-            foreach (var item in dict)
-            {
-                if (item.Key.Name == nameEvent)
-                {
-                    targetEvent = item.Key;
-                }
-            }
+            Event targetEvent = FindingEventByName(dict,nameEvent);
             dict[targetEvent].Add(addedPerson);
             Console.WriteLine("Osoba je dodana!");
         }
-        public static void removePersonFromEvent(Dictionary<Event, List<Person>> dict, string nameEvent, int OIB)
+        public static void RemovePersonFromEvent(Dictionary<Event, List<Person>> dict, string nameEvent, int OIB)
         {
-            var startDate = new DateTime();
-            var endDate = new DateTime();
+            Event targetEvent = FindingEventByName(dict, nameEvent);
             Person removedPerson = new Person("", "", OIB, 0);
-            Event targetEvent = new Event("", startDate, endDate, EventType.Coffee);
-            foreach (var item in dict)
-            {
-                if (item.Key.Name == nameEvent)
-                {
-                    targetEvent = item.Key;
-                }
-            }
-            for(int i = 0; i < dict[targetEvent].Count; i++)
+            for(var i = 0; i < dict[targetEvent].Count; i++)
             {
                 if(dict[targetEvent][i].OIB==OIB)
                 {
@@ -393,6 +410,7 @@ namespace EventApp
                 }
             }
             dict[targetEvent].Remove(removedPerson);
+            Console.WriteLine("Osoba je izbrisana!");
         }
     }
 }
