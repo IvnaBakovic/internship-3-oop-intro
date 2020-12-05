@@ -233,8 +233,7 @@ namespace EventApp
                                     break;
                             }
                         }
-                        break;
-                        
+                        break;    
                     case 7:
                         Console.WriteLine("Izlaz iz aplikacije");
                         shouldContinueFirst = false;
@@ -242,11 +241,9 @@ namespace EventApp
                     default:
                         Console.WriteLine("Neispravan unos broja");
                         break;
-
                 }
             }
         }
-
         public static bool ValidateGuestOnEvent(Dictionary<Event, List<Person>> dict, string name, int OIB)
         {
             Event targetEvent = FindingEventByName(dict, name);
